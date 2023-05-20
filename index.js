@@ -42,6 +42,16 @@ async function connectToDatabase() {
         res.status(500).send({ error: "Failed to fetch categories" });
       }
     });
+    app.get("/category/cattoys", async (req, res) => {
+      try {
+        const cursor = categoryCollection.find({subcategory: "Cat Toys"});
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch categories" });
+      }
+    });
+
 
     app.get("/addtoys", async (req, res) => {
       try {
