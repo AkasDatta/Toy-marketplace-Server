@@ -1,7 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+const { MongoClient, ObjectId } = require("mongodb");
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -11,58 +11,99 @@ app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cv3dsgq.mongodb.net/toyMarketPlace?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
+const client = new MongoClient(uri);
 
-async function run() {
+async function connectToDatabase() {
   try {
     // Connect the client to the server
     await client.connect();
+    console.log("Connected to MongoDB Atlas");
 
-    const categoryCollection = client.db('toyMarketPlace').collection('animalCategory');
-    const addToyCollection = client.db('toyMarketPlace').collection('addtoys');
+    const db = client.db("toyMarketPlace");
+    const categoryCollection = db.collection("animalCategory");
+    const addToyCollection = db.collection("addtoys");
 
-    app.get('/category', async (req, res) => {
-      const cursor = categoryCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    app.get('/addtoys', async (req, res) => {
-      let query = {};
-      if (req.query.email) {
-        query = { sellerEmail: req.query.email };
+    app.get("/category", async (req, res) => {
+      try {
+        const cursor = categoryCollection.find();
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch categories" });
       }
-      const result = await addToyCollection.find(query).toArray();
-      res.send(result);
     });
 
-    app.post('/addtoys', async (req, res) => {
-      const addtoys = req.body;
-      const result = await addToyCollection.insertOne(addtoys);
-      res.send(result);
+    app.get("/category/dogtoys", async (req, res) => {
+      try {
+        const cursor = categoryCollection.find({subcategory: "Dog Toys"});
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch categories" });
+      }
     });
 
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    app.get("/addtoys", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query.email) {
+          query = { sellerEmail: req.query.email };
+        }
+        const result = await addToyCollection.find(query).sort({ price: -1}).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch toys" });
+      }
+    });
+
+    app.post("/addtoys", async (req, res) => {
+      try {
+        const addtoys = req.body;
+        const result = await addToyCollection.insertOne(addtoys);
+        res.send(result.ops[0]);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to add toy" });
+      }
+    });
+
+    app.patch("/addtoys/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedToy = req.body;
+        const updateDoc = {
+          $set: {
+            status: updatedToy.status,
+          },
+        };
+        const result = await addToyCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to update toy" });
+      }
+    });
+
+    app.delete("/addtoys/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await addToyCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to delete toy" });
+      }
+    });
+
+    app.get("/", (req, res) => {
+      res.send("Toy is running");
+    });
+
+    app.listen(port, () => {
+      console.log(`Toy marketplace server is running on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Error connecting to MongoDB Atlas:", error);
   }
 }
 
-run().catch(console.dir);
-
-app.get('/', (req, res) => {
-  res.send('Toy is running');
-});
-
-app.listen(port, () => {
-  console.log(`Toy marketplace server is running on port ${port}`);
-});
+connectToDatabase();
