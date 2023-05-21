@@ -21,7 +21,7 @@ async function connectToDatabase() {
 
     const db = client.db("toyMarketPlace");
     const categoryCollection = db.collection("animalCategory");
-    const addToyCollection = db.collection("addtoys");
+    // const categoryCollection = db.collection("addtoys");
 
     app.get("/category", async (req, res) => {
       try {
@@ -47,10 +47,20 @@ async function connectToDatabase() {
     app.get("/addtoys", async (req, res) => {
       try {
         let query = {};
+        const sort = req.query.sort;
+        
         if (req.query.email) {
           query = { sellerEmail: req.query.email };
         }
-        const result = await addToyCollection.find(query).sort({ price: 1}).toArray();
+
+        const options = {
+          // sort matched documents in descending order by rating
+          sort: { 
+              "price": sort === 'asc' ? 1 : -1
+          }
+          
+      };
+        const result = await categoryCollection.find(query, options).toArray();
         res.send(result);
       } catch (error) {
         res.status(500).send({ error: "Failed to fetch toys" });
@@ -60,7 +70,7 @@ async function connectToDatabase() {
     app.post("/addtoys", async (req, res) => {
       try {
         const addtoys = req.body;
-        const result = await addToyCollection.insertOne(addtoys);
+        const result = await categoryCollection.insertOne(addtoys);
         res.send(result.ops[0]);
       } catch (error) {
         res.status(500).send({ error: "Failed to add toy" });
@@ -77,7 +87,7 @@ async function connectToDatabase() {
             status: updatedToy.status,
           },
         };
-        const result = await addToyCollection.updateOne(filter, updateDoc);
+        const result = await categoryCollection.updateOne(filter, updateDoc);
         res.send(result);
       } catch (error) {
         res.status(500).send({ error: "Failed to update toy" });
@@ -88,7 +98,7 @@ async function connectToDatabase() {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
-        const result = await addToyCollection.deleteOne(query);
+        const result = await categoryCollection.deleteOne(query);
         res.send(result);
       } catch (error) {
         res.status(500).send({ error: "Failed to delete toy" });
