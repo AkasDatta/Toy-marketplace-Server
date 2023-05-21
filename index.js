@@ -33,25 +33,16 @@ async function connectToDatabase() {
       }
     });
 
-    app.get("/category/dogtoys", async (req, res) => {
-      try {
-        const cursor = categoryCollection.find({subcategory: "Dog Toys"});
-        const result = await cursor.toArray();
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ error: "Failed to fetch categories" });
-      }
-    });
-    app.get("/category/cattoys", async (req, res) => {
-      try {
-        const cursor = categoryCollection.find({subcategory: "Cat Toys"});
-        const result = await cursor.toArray();
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ error: "Failed to fetch categories" });
-      }
-    });
-
+    app.get('/category/:id', async (req, res) => {
+        try {
+          const id = req.params.id;
+          const query = { _id: new ObjectId(id) };
+          const result = await categoryCollection.findOne(query);
+          res.send(result);
+        } catch (error) {
+          res.status(500).send({ error: 'Failed to fetch toy details' });
+        }
+      });
 
     app.get("/addtoys", async (req, res) => {
       try {
@@ -59,7 +50,7 @@ async function connectToDatabase() {
         if (req.query.email) {
           query = { sellerEmail: req.query.email };
         }
-        const result = await addToyCollection.find(query).sort({ price: -1}).toArray();
+        const result = await addToyCollection.find(query).sort({ price: 1}).toArray();
         res.send(result);
       } catch (error) {
         res.status(500).send({ error: "Failed to fetch toys" });
