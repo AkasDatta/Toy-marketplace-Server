@@ -77,17 +77,20 @@ async function connectToDatabase() {
       }
     });
 
-    app.patch("/addtoys/:id", async (req, res) => {
+    app.put("/addtoys/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
+        const options = {upsert: true};
         const updatedToy = req.body;
         const updateDoc = {
           $set: {
-            status: updatedToy.status,
+            price: updatedToy.price,
+            quantity: updatedToy.quantity,
+            description: updatedToy.description,
           },
         };
-        const result = await categoryCollection.updateOne(filter, updateDoc);
+        const result = await categoryCollection.updateOne(filter, updateDoc, options);
         res.send(result);
       } catch (error) {
         res.status(500).send({ error: "Failed to update toy" });
